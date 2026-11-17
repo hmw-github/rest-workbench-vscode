@@ -6,7 +6,7 @@ This extension has been created using Claude Code because the Rest Client extens
 on my Mac. Other than the Rest Client extension (which i quite like) it supports the full Jetbrains specification, i.e. it
 allows to specify tests after the curl call.
 
-Feel free to use, i will not give any support!
+Feel free to use, i will not give any warranty or support!
 
 ## What it does
 
@@ -194,8 +194,8 @@ npm run package      # -> rest-workbench-<version>.vsix
 code --install-extension rest-workbench-1.1.0.vsix --force
 ```
 
-The build bundles shared code from `../rest-workbench/src`, so that folder must sit next to this
-one.
+Requirements: Node.js 20+ and `curl` on the `PATH`. The `code` command must be installed
+(VS Code: *Shell Command: Install 'code' command in PATH*).
 
 ## Coexistence with the REST Client extension
 

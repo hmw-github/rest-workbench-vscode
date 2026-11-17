@@ -15,7 +15,7 @@ exports.run = async function () {
 
   const uri = vscode.Uri.file(file);
   await vscode.window.showTextDocument(await vscode.workspace.openTextDocument(uri));
-  const api = await vscode.extensions.getExtension('awt-lecture.rest-workbench').activate();
+  const api = await vscode.extensions.getExtension('hmw-github.rest-workbench').activate();
 
   await new Promise((r) => setTimeout(r, 500));
   const diags = vscode.languages.getDiagnostics(uri).map((d) => `${d.range.start.line + 1}: ${d.message}`);

@@ -3,7 +3,7 @@
   "displayName": "REST Workbench",
   "description": "Edit and run .http request files (REST Client + JetBrains HTTP Client syntax) with curl: environments, variables, scripts and tests, response panel with editable curl command.",
   "version": "1.1.0",
-  "publisher": "H. Windisch",
+  "publisher": "hmw-github",
   "private": true,
   "license": "ISC",
   "engines": {

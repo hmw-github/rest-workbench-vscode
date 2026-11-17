@@ -1,5 +1,4 @@
-// Bundles the extension into one CommonJS file. The .http parser, variable resolver and curl
-// runner are imported from the desktop app (../rest-workbench/src) so both behave identically.
+// Bundles the extension into one CommonJS file.
 import * as esbuild from 'esbuild';
 
 const ctx = await esbuild.context({

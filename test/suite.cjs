@@ -194,7 +194,7 @@ GET {{host}}/fail
   const uri = vscode.Uri.file(file);
   const doc = await vscode.workspace.openTextDocument(uri);
   await vscode.window.showTextDocument(doc);
-  const api = await vscode.extensions.getExtension('awt-lecture.rest-workbench').activate();
+  const api = await vscode.extensions.getExtension('hmw-github.rest-workbench').activate();
   await api.selectEnvironment('local');
 
   // hover: environment variable
