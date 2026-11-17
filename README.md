@@ -6,7 +6,7 @@ This extension has been created using Claude Code because the Rest Client extens
 on my Mac. Other than the Rest Client extension (which i quite like) it supports the full Jetbrains specification, i.e. it
 allows to specify tests after the curl call.
 
-Feel free to use, i will note give any support!
+Feel free to use, i will not give any support!
 
 ## What it does
 
