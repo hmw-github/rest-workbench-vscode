@@ -1,0 +1,283 @@
+{
+  "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+  "name": "HTTP",
+  "scopeName": "source.http",
+  "patterns": [
+    {
+      "include": "#separator"
+    },
+    {
+      "include": "#script"
+    },
+    {
+      "include": "#setting"
+    },
+    {
+      "include": "#comment"
+    },
+    {
+      "include": "#variable-definition"
+    },
+    {
+      "include": "#curl"
+    },
+    {
+      "include": "#request-line"
+    },
+    {
+      "include": "#output-redirect"
+    },
+    {
+      "include": "#handler-file"
+    },
+    {
+      "include": "#file-body"
+    },
+    {
+      "include": "#header"
+    },
+    {
+      "include": "#query"
+    },
+    {
+      "include": "#json-body"
+    },
+    {
+      "include": "#placeholder"
+    }
+  ],
+  "repository": {
+    "separator": {
+      "match": "^###.*$",
+      "name": "markup.heading.http"
+    },
+    "comment": {
+      "match": "^\\s*(#|//).*$",
+      "name": "comment.line.http"
+    },
+    "variable-definition": {
+      "match": "^\\s*(@)([\\w.-]+)\\s*(=)\\s*(.*)$",
+      "captures": {
+        "1": {
+          "name": "punctuation.definition.variable.http"
+        },
+        "2": {
+          "name": "variable.other.http"
+        },
+        "3": {
+          "name": "keyword.operator.assignment.http"
+        },
+        "4": {
+          "name": "string.unquoted.http",
+          "patterns": [
+            {
+              "include": "#placeholder"
+            }
+          ]
+        }
+      }
+    },
+    "curl": {
+      "begin": "^\\s*(curl)\\b",
+      "beginCaptures": {
+        "1": {
+          "name": "keyword.control.curl.http"
+        }
+      },
+      "end": "(?<!\\\\)$",
+      "patterns": [
+        {
+          "include": "#placeholder"
+        },
+        {
+          "match": "(?<=\\s)--?[A-Za-z][\\w-]*",
+          "name": "variable.parameter.option.http"
+        },
+        {
+          "match": "'[^']*'",
+          "name": "string.quoted.single.http"
+        },
+        {
+          "match": "\"(?:\\\\.|[^\"\\\\])*\"",
+          "name": "string.quoted.double.http"
+        }
+      ]
+    },
+    "request-line": {
+      "match": "^\\s*(GET|POST|PUT|PATCH|DELETE|HEAD|OPTIONS|TRACE|CONNECT)\\s+(.*?)(\\s+HTTP/[\\d.]+)?\\s*$",
+      "captures": {
+        "1": {
+          "name": "keyword.control.http-method.http"
+        },
+        "2": {
+          "name": "string.unquoted.url.http",
+          "patterns": [
+            {
+              "include": "#placeholder"
+            }
+          ]
+        },
+        "3": {
+          "name": "constant.language.http-version.http"
+        }
+      }
+    },
+    "header": {
+      "match": "^([\\w!#$%&'*+.^`|~-]+)(:)\\s*(.*)$",
+      "captures": {
+        "1": {
+          "name": "support.type.property-name.header.http"
+        },
+        "2": {
+          "name": "punctuation.separator.key-value.http"
+        },
+        "3": {
+          "name": "string.unquoted.header-value.http",
+          "patterns": [
+            {
+              "include": "#placeholder"
+            }
+          ]
+        }
+      }
+    },
+    "query": {
+      "match": "^\\s*[?&].*$",
+      "name": "string.unquoted.url.http",
+      "captures": {
+        "0": {
+          "patterns": [
+            {
+              "include": "#placeholder"
+            }
+          ]
+        }
+      }
+    },
+    "json-body": {
+      "begin": "^\\s*(?=[\\[{])",
+      "end": "^(?=###)",
+      "contentName": "meta.embedded.block.json",
+      "patterns": [
+        {
+          "include": "#placeholder"
+        },
+        {
+          "include": "#script"
+        },
+        {
+          "include": "#output-redirect"
+        },
+        {
+          "include": "#handler-file"
+        },
+        {
+          "include": "source.json"
+        }
+      ]
+    },
+    "placeholder": {
+      "match": "(\\{\\{)\\s*([^}]+?)\\s*(\\}\\})",
+      "captures": {
+        "1": {
+          "name": "punctuation.definition.template-expression.begin.http"
+        },
+        "2": {
+          "name": "variable.other.placeholder.http"
+        },
+        "3": {
+          "name": "punctuation.definition.template-expression.end.http"
+        }
+      }
+    },
+    "setting": {
+      "match": "^\\s*(#+|//+)\\s*(@)(name|prompt|note|no-redirect|no-cookie-jar|no-log|timeout|connection-timeout)\\b\\s*(=?\\s*[\\w.-]+)?(.*)$",
+      "captures": {
+        "1": {
+          "name": "comment.line.http"
+        },
+        "2": {
+          "name": "keyword.other.setting.http"
+        },
+        "3": {
+          "name": "keyword.other.setting.http"
+        },
+        "4": {
+          "name": "entity.name.function.request-name.http"
+        },
+        "5": {
+          "name": "string.unquoted.http"
+        }
+      }
+    },
+    "script": {
+      "begin": "^\\s*([<>])\\s*(\\{%)",
+      "beginCaptures": {
+        "1": {
+          "name": "keyword.operator.script.http"
+        },
+        "2": {
+          "name": "punctuation.section.embedded.begin.http"
+        }
+      },
+      "end": "(%\\})",
+      "endCaptures": {
+        "1": {
+          "name": "punctuation.section.embedded.end.http"
+        }
+      },
+      "contentName": "meta.embedded.block.javascript",
+      "patterns": [
+        {
+          "include": "source.js"
+        }
+      ]
+    },
+    "handler-file": {
+      "match": "^\\s*([<>])\\s+(\\S+\\.(?:js|mjs|cjs))\\s*$",
+      "captures": {
+        "1": {
+          "name": "keyword.operator.script.http"
+        },
+        "2": {
+          "name": "string.unquoted.path.http"
+        }
+      }
+    },
+    "output-redirect": {
+      "match": "^\\s*(>>!?)\\s+(.*)$",
+      "captures": {
+        "1": {
+          "name": "keyword.operator.redirect.http"
+        },
+        "2": {
+          "name": "string.unquoted.path.http",
+          "patterns": [
+            {
+              "include": "#placeholder"
+            }
+          ]
+        }
+      }
+    },
+    "file-body": {
+      "match": "^\\s*(<)(@\\w*)?\\s+(.*)$",
+      "captures": {
+        "1": {
+          "name": "keyword.operator.file.http"
+        },
+        "2": {
+          "name": "keyword.other.encoding.http"
+        },
+        "3": {
+          "name": "string.unquoted.path.http",
+          "patterns": [
+            {
+              "include": "#placeholder"
+            }
+          ]
+        }
+      }
+    }
+  }
+}

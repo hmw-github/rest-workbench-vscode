@@ -1,0 +1,295 @@
+{
+  "name": "rest-workbench",
+  "displayName": "REST Workbench",
+  "description": "Edit and run .http request files (REST Client + JetBrains HTTP Client syntax) with curl: environments, variables, scripts and tests, response panel with editable curl command.",
+  "version": "1.1.0",
+  "publisher": "H. Windisch",
+  "private": true,
+  "license": "ISC",
+  "engines": {
+    "vscode": "^1.90.0"
+  },
+  "categories": [
+    "Programming Languages",
+    "Testing",
+    "Other"
+  ],
+  "keywords": [
+    "http",
+    "rest",
+    "curl",
+    "api"
+  ],
+  "main": "./dist/extension.js",
+  "activationEvents": [
+    "onLanguage:http",
+    "workspaceContains:**/*.http",
+    "workspaceContains:**/*.rest"
+  ],
+  "contributes": {
+    "languages": [
+      {
+        "id": "http",
+        "aliases": [
+          "HTTP",
+          "http"
+        ],
+        "extensions": [
+          ".http",
+          ".rest"
+        ],
+        "configuration": "./language-configuration.json"
+      }
+    ],
+    "grammars": [
+      {
+        "language": "http",
+        "scopeName": "source.http",
+        "path": "./syntaxes/http.tmLanguage.json",
+        "embeddedLanguages": {
+          "meta.embedded.block.json": "json",
+          "meta.embedded.block.javascript": "javascript"
+        }
+      }
+    ],
+    "commands": [
+      {
+        "command": "restWorkbench.sendRequest",
+        "title": "Send Request",
+        "category": "REST Workbench",
+        "icon": "$(play)"
+      },
+      {
+        "command": "restWorkbench.sendAll",
+        "title": "Run All Requests in File",
+        "category": "REST Workbench",
+        "icon": "$(run-all)"
+      },
+      {
+        "command": "restWorkbench.copyAsCurl",
+        "title": "Copy Request as curl",
+        "category": "REST Workbench"
+      },
+      {
+        "command": "restWorkbench.cancelRequest",
+        "title": "Cancel Request",
+        "category": "REST Workbench"
+      },
+      {
+        "command": "restWorkbench.switchEnvironment",
+        "title": "Switch Environment",
+        "category": "REST Workbench",
+        "icon": "$(server-environment)"
+      },
+      {
+        "command": "restWorkbench.showHistory",
+        "title": "Request History",
+        "category": "REST Workbench",
+        "icon": "$(history)"
+      },
+      {
+        "command": "restWorkbench.clearHistory",
+        "title": "Clear Request History",
+        "category": "REST Workbench"
+      },
+      {
+        "command": "restWorkbench.clearCookies",
+        "title": "Clear Cookies",
+        "category": "REST Workbench"
+      },
+      {
+        "command": "restWorkbench.clearResponses",
+        "title": "Forget Stored Responses and Script Globals",
+        "category": "REST Workbench"
+      },
+      {
+        "command": "restWorkbench.openInApp",
+        "title": "Open in REST Workbench App",
+        "category": "REST Workbench",
+        "icon": "$(link-external)"
+      }
+    ],
+    "menus": {
+      "editor/title": [
+        {
+          "command": "restWorkbench.sendRequest",
+          "when": "editorLangId == http",
+          "group": "navigation@1"
+        },
+        {
+          "command": "restWorkbench.sendAll",
+          "when": "editorLangId == http",
+          "group": "navigation@2"
+        },
+        {
+          "command": "restWorkbench.switchEnvironment",
+          "when": "editorLangId == http",
+          "group": "navigation@3"
+        },
+        {
+          "command": "restWorkbench.openInApp",
+          "when": "editorLangId == http",
+          "group": "navigation@4"
+        }
+      ],
+      "editor/context": [
+        {
+          "command": "restWorkbench.sendRequest",
+          "when": "editorLangId == http",
+          "group": "restWorkbench@1"
+        },
+        {
+          "command": "restWorkbench.copyAsCurl",
+          "when": "editorLangId == http",
+          "group": "restWorkbench@2"
+        },
+        {
+          "command": "restWorkbench.sendAll",
+          "when": "editorLangId == http",
+          "group": "restWorkbench@3"
+        },
+        {
+          "command": "restWorkbench.openInApp",
+          "when": "editorLangId == http",
+          "group": "restWorkbench@4"
+        }
+      ],
+      "commandPalette": [
+        {
+          "command": "restWorkbench.sendRequest",
+          "when": "editorLangId == http"
+        },
+        {
+          "command": "restWorkbench.sendAll",
+          "when": "editorLangId == http"
+        },
+        {
+          "command": "restWorkbench.copyAsCurl",
+          "when": "editorLangId == http"
+        },
+        {
+          "command": "restWorkbench.openInApp",
+          "when": "editorLangId == http"
+        }
+      ]
+    },
+    "keybindings": [
+      {
+        "command": "restWorkbench.sendRequest",
+        "key": "ctrl+enter",
+        "mac": "cmd+enter",
+        "when": "editorTextFocus && editorLangId == http"
+      },
+      {
+        "command": "restWorkbench.sendAll",
+        "key": "ctrl+shift+enter",
+        "mac": "cmd+shift+enter",
+        "when": "editorTextFocus && editorLangId == http"
+      },
+      {
+        "command": "restWorkbench.cancelRequest",
+        "key": "ctrl+.",
+        "mac": "cmd+.",
+        "when": "restWorkbench.running"
+      },
+      {
+        "command": "restWorkbench.switchEnvironment",
+        "key": "ctrl+alt+e",
+        "mac": "cmd+alt+e",
+        "when": "editorLangId == http"
+      },
+      {
+        "command": "restWorkbench.showHistory",
+        "key": "ctrl+alt+h",
+        "mac": "cmd+alt+h",
+        "when": "editorLangId == http"
+      }
+    ],
+    "configuration": {
+      "title": "REST Workbench",
+      "properties": {
+        "restWorkbench.curlPath": {
+          "type": "string",
+          "default": "curl",
+          "description": "Path to the curl executable."
+        },
+        "restWorkbench.timeoutSeconds": {
+          "type": "number",
+          "default": 60,
+          "minimum": 1,
+          "description": "Default maximum time for a request (curl --max-time). Override per request with `# @timeout 10`."
+        },
+        "restWorkbench.environmentVariables": {
+          "type": "object",
+          "default": {},
+          "markdownDescription": "Environments (same format as `rest-client.environmentVariables`, which is read as well):\n```json\n{ \"$shared\": { \"version\": \"v1\" }, \"local\": { \"baseUrl\": \"http://localhost:8080\" } }\n```\nJetBrains `http-client.env.json` / `http-client.private.env.json` files next to the .http file are also used.",
+          "additionalProperties": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            }
+          }
+        },
+        "restWorkbench.followRedirects": {
+          "type": "boolean",
+          "default": true,
+          "description": "Follow HTTP redirects (curl -L). Disable per request with `# @no-redirect`. Falls back to rest-client.followredirect."
+        },
+        "restWorkbench.rememberCookies": {
+          "type": "boolean",
+          "default": true,
+          "description": "Store cookies and send them with subsequent requests. Disable per request with `# @no-cookie-jar`. Falls back to rest-client.rememberCookiesForSubsequentRequests."
+        },
+        "restWorkbench.defaultHeaders": {
+          "type": "object",
+          "default": {},
+          "additionalProperties": {
+            "type": "string"
+          },
+          "description": "Headers added to every request unless the request sets them (merged with rest-client.defaultHeaders)."
+        },
+        "restWorkbench.certificates": {
+          "type": "object",
+          "default": {},
+          "markdownDescription": "Client certificates per host, e.g. `{ \"localhost:8443\": { \"cert\": \"/path/cert.pem\", \"key\": \"/path/key.pem\" } }` or `{ \"pfx\": \"…\", \"passphrase\": \"…\" }`. Merged with rest-client.certificates."
+        },
+        "restWorkbench.allowInsecureTLS": {
+          "type": "boolean",
+          "default": false,
+          "description": "Do not verify TLS certificates (curl -k)."
+        },
+        "restWorkbench.appPath": {
+          "type": "string",
+          "default": "",
+          "markdownDescription": "Path to the REST Workbench desktop app (`.app` on macOS, `.exe` on Windows) used by *Open in REST Workbench App*. Empty = default install location."
+        }
+      }
+    },
+    "jsonValidation": [
+      {
+        "fileMatch": [
+          "http-client.env.json",
+          "http-client.private.env.json"
+        ],
+        "url": "./syntaxes/http-client.env.schema.json"
+      }
+    ]
+  },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json",
+    "build": "npm run typecheck && node esbuild.mjs",
+    "watch": "node esbuild.mjs --watch",
+    "package": "npm run build && vsce package --allow-missing-repository --skip-license --no-dependencies",
+    "test": "npm run build && node test/run.mjs"
+  },
+  "devDependencies": {
+    "@types/node": "^20.19.43",
+    "@types/vscode": "^1.90.0",
+    "@vscode/test-electron": "^3.1.0",
+    "@vscode/vsce": "^4.1.0",
+    "@xmldom/xmldom": "^0.9.12",
+    "esbuild": "^0.28.2",
+    "typescript": "^7.0.2",
+    "xpath": "^0.0.36"
+  }
+}

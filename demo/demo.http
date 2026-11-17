@@ -1,0 +1,372 @@
+# =====================================================================================
+#  demo.http – a tour of the .http language (REST Client + JetBrains HTTP Client syntax)
+# =====================================================================================
+#
+#  Preparation
+#   1. start the ACME server (awt-lecture-sources/03-rest/acme-server-solution): npm run dev
+#      (port 8080; demo/.env must contain the same PORT as the server's .env)
+#   2. select the environment "local":   ⌥⌘E / Ctrl+Alt+E   (or click the status bar)
+#      -> variables come from http-client.env.json and http-client.private.env.json
+#   3. send a request with ⌘↵ / Ctrl+Enter or "▶ Send Request" above it,
+#      or everything at once with "Run All" (⇧⌘↵). Test results: "Tests" tab / Output view.
+#
+#  Part 1 works against the ACME server. Part 2 shows features the ACME server has no
+#  endpoint for and uses the public echo service httpbin.org ({{echoUrl}}, internet needed).
+#
+#  Comments start with # or //. A line starting with ### separates requests.
+
+// ----- file variables: valid in the whole file, may use other variables -----
+@api = {{baseUrl}}
+@json = application/json
+@today = {{$datetime 'YYYY-MM-DD'}}
+@updatedAmount = 250
+
+
+# =====================================================================================
+#  Part 1 – ACME server
+# =====================================================================================
+
+### 1. Simplest request: just the URL (method defaults to GET)
+{{api}}/customer
+
+> {%
+  // response handler (JavaScript, JetBrains API): tests + global variables
+  client.test("status is 202", () => client.assert(response.status === 202, "status " + response.status));
+  client.test("returns customers", () => client.assert(Array.isArray(response.body) && response.body.length > 0));
+  client.global.set("firstCustomerName", response.body[0].name);   // -> {{firstCustomerName}}
+  client.log("first customer:", response.body[0].name);
+%}
+
+
+### 2. Method, HTTP version and headers
+GET {{api}}/revenue HTTP/1.1
+Accept: {{json}}
+X-Demo-First-Customer: {{firstCustomerName}}
+
+> {%
+  client.test("12 months of revenue", () => client.assert(response.body.length === 12));
+  client.test("content type is JSON", () => client.assert(response.contentType.mimeType === "application/json"));
+%}
+
+
+### 3. Multi-line query string + named request (# @name)
+# @name filtered
+GET {{api}}/invoice/filtered
+    ?query=Michael
+    &currentPage=1
+
+
+### 4. Values from a named response (JSONPath) – and URL encoding of spaces
+GET {{api}}/invoice/filtered?query={{filtered.response.body.$[0].name}}&currentPage=-1
+
+> {%
+  client.test("all invoices of the same customer", () =>
+    client.assert(response.body.every(i => i.name === response.body[0].name)));
+%}
+
+
+### 5. Environment variable + test for the password from the private env file
+GET {{api}}/user?email={{userEmail}}
+
+> {%
+  client.test("user found", () => client.assert(response.status === 200));
+  client.test("password matches http-client.private.env.json", () =>
+    client.assert(response.body.password === request.environment.get("password"), "wrong password"));
+%}
+
+
+### 6. Prompt variable – asked before sending (type e.g. user@mail.com or nobody@mail.com)
+# @prompt email E-mail address of the user to look up
+GET {{api}}/user?email={{email}}
+
+> {%
+  client.test("status is 200 or 404", () => client.assert([200, 404].includes(response.status)));
+  client.log(response.status === 200 ? "found " + response.body.name : "no such user");
+%}
+
+
+### 7. Expected error: 404 for an unknown user
+GET {{api}}/user?email=nobody@mail.com
+
+> {% client.test("unknown user -> 404", () => client.assert(response.status === 404, "status " + response.status)); %}
+
+
+### 8. Create an invoice: pre-request script, system variables, JSON body
+# @name createInvoice
+< {%
+  // runs before the request; request variables are only valid for this request
+  request.variables.set("amount", Math.floor(Math.random() * 900) + 100);
+%}
+POST {{api}}/invoice
+Content-Type: {{json}}
+
+{
+  "customer_id": "{{customerId}}",
+  "amount": {{amount}},
+  "date": "{{today}}",
+  "status": "pending"
+}
+
+> {%
+  client.test("created (201)", () => client.assert(response.status === 201, "status " + response.status));
+  // the server answers with the new id as body
+  client.global.set("invoiceId", String(response.body));
+  client.global.set("invoiceAmount", request.variables.get("amount"));
+  client.log("new invoice", response.body, "amount", request.variables.get("amount"));
+%}
+
+
+### 9. Read it back: whole response body (*), request side of a named request, handler from a file
+@newId = {{createInvoice.response.body.*}}
+GET {{api}}/invoice?id={{newId}}
+X-Created-With-Amount: {{createInvoice.request.body.$.amount}}
+X-Created-Content-Type: {{createInvoice.request.headers.Content-Type}}
+
+> ./demo-scripts/check-invoice.js
+
+
+### 10. Update: body from a file WITH variable substitution (<@)
+PUT {{api}}/invoice/{{invoiceId}}
+Content-Type: {{json}}
+
+<@ ./demo-data/invoice-update.json
+
+> {% client.test("updated (200)", () => client.assert(response.status === 200, "status " + response.status)); %}
+
+
+### 11. Check the update – global variable from a script
+GET {{api}}/invoice?id={{invoiceId}}
+
+> {%
+  client.test("status is paid", () => client.assert(response.body.status === "paid"));
+  client.test("amount updated", () => client.assert(response.body.amount === 250));
+%}
+
+
+### 12. Form data (application/x-www-form-urlencoded) – lines are joined
+# @name formInvoice
+POST {{api}}/invoice
+Content-Type: application/x-www-form-urlencoded
+
+customer_id={{customerId}}
+&amount=42
+&date={{today}}
+&status=paid
+
+> {% client.test("created from form data", () => client.assert(response.status === 201)); %}
+
+
+### 13. Save the response body to a file (>>! overwrites, >> would create latest-invoices-1.json, ...)
+GET {{api}}/invoice/latest/5
+
+>>! ./demo-output/latest-invoices.json
+
+
+### 14. Request settings: timeouts, not stored in the history
+# @timeout 5
+# @connection-timeout 2
+# @no-log
+GET {{api}}/revenue
+
+
+### 15. Origin form: path only, server from the Host header
+GET /customer
+Host: localhost:{{$dotenv PORT}}
+
+
+### 16. A plain curl command works as well (variables are replaced)
+curl {{api}}/invoice/latest/2 \
+  -H 'Accept: application/json'
+
+
+### 17. Clean up: delete the form invoice (id = whole body of request "formInvoice")
+DELETE {{api}}/invoice/{{formInvoice.response.body.*}}
+
+> {% client.test("deleted (200)", () => client.assert(response.status === 200)); %}
+
+
+### 18. @note asks for confirmation before sending
+# @note
+DELETE {{api}}/invoice/{{invoiceId}}
+
+> {% client.test("deleted (200)", () => client.assert(response.status === 200)); %}
+
+
+### 19. ...and now it is gone
+GET {{api}}/invoice?id={{invoiceId}}
+
+> {% client.test("invoice deleted -> 404", () => client.assert(response.status === 404)); %}
+
+
+# =====================================================================================
+#  Part 2 – features the ACME server has no endpoint for (echo service httpbin.org)
+#  Tip: run httpbin locally with "docker run -p 8081:80 kennethreitz/httpbin" and set
+#  echoUrl in http-client.env.json to http://localhost:8081
+# =====================================================================================
+
+### 20. System variables (a new value on every request)
+GET {{echoUrl}}/anything
+X-Guid: {{$guid}}
+X-Random-Uuid: {{$random.uuid}}
+X-Random-Int: {{$randomInt 1 7}}
+X-Random-Integer: {{$random.integer(10, 20)}}
+X-Random-Float: {{$random.float(0, 1)}}
+X-Random-Text: {{$random.alphabetic(6)}}-{{$random.alphanumeric(6)}}-{{$random.hexadecimal(6)}}
+X-Random-Email: {{$random.email}}
+X-Timestamp: {{$timestamp}}
+X-Timestamp-1h-Ago: {{$timestamp -1 h}}
+X-Iso-Timestamp: {{$isoTimestamp}}
+X-Datetime-Iso: {{$datetime iso8601}}
+X-Datetime-Rfc: {{$datetime rfc1123}}
+X-Next-Week: {{$datetime 'DD.MM.YYYY' 1 w}}
+X-Local-Time: {{$localDatetime 'HH:mm:ss'}}
+X-Process-Env: {{$processEnv %homeVar}}
+X-Dotenv-Port: {{$dotenv PORT}}
+X-Shared: {{$shared.echoUrl}}
+
+> {%
+  const h = response.body.headers;
+  client.test("guid is a UUID", () => client.assert(/^[0-9a-f-]{36}$/.test(h["X-Guid"])));
+  client.test("randomInt in [1, 7)", () => client.assert(+h["X-Random-Int"] >= 1 && +h["X-Random-Int"] < 7));
+  client.test("dotenv PORT read", () => client.assert(h["X-Dotenv-Port"].length > 0));
+  client.log(h);
+%}
+
+
+### 21. Basic authentication – "user:password" is base64-encoded automatically
+GET {{echoUrl}}/basic-auth/{{demoUser}}/{{demoPassword}}
+Authorization: Basic {{demoUser}}:{{demoPassword}}
+
+> {% client.test("authenticated", () => client.assert(response.body.authenticated === true)); %}
+
+
+### 22. Digest authentication (handled by curl --digest)
+GET {{echoUrl}}/digest-auth/auth/{{demoUser}}/{{demoPassword}}
+Authorization: Digest {{demoUser}} {{demoPassword}}
+
+> {% client.test("authenticated", () => client.assert(response.status === 200, "status " + response.status)); %}
+
+
+### 23. Redirects are followed by default ...
+GET {{echoUrl}}/redirect/2
+
+> {% client.test("ended at /get", () => client.assert(response.status === 200 && response.body.url.endsWith("/get"))); %}
+
+
+### 24. ... unless @no-redirect is set
+# @no-redirect
+GET {{echoUrl}}/redirect/2
+
+> {%
+  client.test("302 without following", () => client.assert(response.status === 302));
+  client.log("Location:", response.headers.valueOf("Location"));
+%}
+
+
+### 25. Cookies: the server sets a cookie (and redirects), the cookie jar keeps it
+# @name setCookie
+GET {{echoUrl}}/cookies/set?flavor=chocolate
+
+
+### 26. The cookie is sent automatically with the next request
+GET {{echoUrl}}/cookies
+
+> {% client.test("cookie sent", () => client.assert(response.body.cookies.flavor === "chocolate")); %}
+
+
+### 27. @no-cookie-jar: no cookies sent or stored
+# @no-cookie-jar
+GET {{echoUrl}}/cookies
+
+> {% client.test("no cookies", () => client.assert(Object.keys(response.body.cookies).length === 0)); %}
+
+
+### 28. Multipart upload with a file (sent with CRLF line endings)
+POST {{echoUrl}}/post
+Content-Type: multipart/form-data; boundary=DemoBoundary
+
+--DemoBoundary
+Content-Disposition: form-data; name="description"
+
+uploaded on {{today}}
+--DemoBoundary
+Content-Disposition: form-data; name="file"; filename="note.txt"
+Content-Type: text/plain
+
+< ./demo-data/note.txt
+--DemoBoundary--
+
+> {%
+  client.test("form field received", () => client.assert(response.body.form.description.startsWith("uploaded on")));
+  client.test("file received", () => client.assert(response.body.files.file.includes("ACME")));
+%}
+
+
+### 29. GraphQL: query, blank line, variables -> sent as JSON
+POST {{echoUrl}}/anything
+X-Request-Type: GraphQL
+
+query InvoicesOfCustomer($customerId: ID!, $limit: Int) {
+  invoices(customerId: $customerId, limit: $limit) { id amount status }
+}
+
+{ "customerId": "{{customerId}}", "limit": 5 }
+
+> {%
+  const sent = response.body.json;
+  client.test("operationName detected", () => client.assert(sent.operationName === "InvoicesOfCustomer"));
+  client.test("variables sent", () => client.assert(sent.variables.limit === 5));
+%}
+
+
+### 30. XML response
+# @name slideshow
+GET {{echoUrl}}/xml
+
+
+### 31. Values from an XML response with XPath + response header reference
+GET {{echoUrl}}/anything
+X-Author: {{slideshow.response.body./slideshow/@author}}
+X-Second-Slide: {{slideshow.response.body.//slide[2]/title}}
+X-Xml-Type: {{slideshow.response.headers.Content-Type}}
+
+> {% client.test("XPath values", () => client.assert(response.body.headers["X-Author"] === "Yours Truly")); %}
+
+
+### 32. Binary response: image preview in the panel, saved to a file
+GET {{echoUrl}}/image/png
+
+>>! ./demo-output/image.png
+
+
+### 33. Body from a file WITHOUT substitution (<): the {{...}} are sent literally
+POST {{echoUrl}}/anything
+Content-Type: text/plain
+
+< ./demo-data/invoice-update.json
+
+> {% client.test("placeholders kept", () => client.assert(response.body.data.includes("{{invoiceId}}"))); %}
+
+
+### 34. HEAD request (headers only) and HTTP/2
+HEAD {{echoUrl}}/get HTTP/2
+
+
+### 35. Slow response within @timeout
+# @timeout 5
+GET {{echoUrl}}/delay/1
+
+
+### (the separator above ends request 35 – otherwise these comments would be its body)
+# =====================================================================================
+#  Not executable here (no suitable server) – syntax only:
+#
+#  AWS Signature v4 (curl --aws-sigv4):
+#    GET https://s3.eu-central-1.amazonaws.com/my-bucket/file.txt
+#    Authorization: AWS {{awsAccessKeyId}} {{awsSecretKey}} region:eu-central-1 service:s3
+#
+#  Client certificates: setting "restWorkbench.certificates" (or "rest-client.certificates")
+#    { "localhost:8443": { "cert": "./cert.pem", "key": "./key.pem" } }
+#
+#  Not supported by REST Workbench: {{$aadToken}}, {{$aadV2Token}}, {{$oidcAccessToken}}
+# =====================================================================================

@@ -1,0 +1,7 @@
+{
+  "id": "{{invoiceId}}",
+  "customer_id": "{{customerId}}",
+  "amount": {{updatedAmount}},
+  "date": "{{$datetime 'YYYY-MM-DD'}}",
+  "status": "paid"
+}
